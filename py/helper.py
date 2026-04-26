@@ -358,12 +358,7 @@ def load_onnx_all(
 
     dp_ort = load_onnx(dp_onnx_path, opts, providers)
     text_enc_ort = load_onnx(text_enc_onnx_path, opts, providers)
-
-    # vector_estimator uses dynamic shapes that cause broadcast errors on GPU backends.
-    # Keep it on CPU while other models benefit from GPU acceleration.
-    cpu_only = ["CPUExecutionProvider"]
-    vector_est_ort = load_onnx(vector_est_onnx_path, opts, cpu_only)
-
+    vector_est_ort = load_onnx(vector_est_onnx_path, opts, providers)
     vocoder_ort = load_onnx(vocoder_onnx_path, opts, providers)
     return dp_ort, text_enc_ort, vector_est_ort, vocoder_ort
 
