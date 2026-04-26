@@ -8,7 +8,7 @@ pydantic>=2.0.0
 
 # ONNX Runtime with CUDA GPU support
 # For CPU-only: replace onnxruntime-gpu with onnxruntime>=1.23.0
-onnxruntime-gpu>=1.24.0
+onnxruntime-gpu>=1.25.0
 nvidia-cublas-cu12
 nvidia-cudnn-cu12
 nvidia-cuda-runtime-cu12
