@@ -22,9 +22,9 @@ for %%a in (%*) do (
     if /i "%%a"=="--no-gpu" set NO_GPU=1
 )
 
-:: Auto-detect GPU if not explicitly disabled
+:: Auto-detect GPU (CUDA only; DML not supported)
 if "%USE_GPU%"=="" if "%NO_GPU%"=="0" (
-    python -c "import onnxruntime; p=onnxruntime.get_available_providers(); exit(0 if 'DmlExecutionProvider' in p or 'CUDAExecutionProvider' in p else 1)" 2>nul
+    python -c "import onnxruntime; p=onnxruntime.get_available_providers(); exit(0 if 'CUDAExecutionProvider' in p else 1)" 2>nul
     if !ERRORLEVEL! equ 0 set USE_GPU=--use-gpu
 )
 

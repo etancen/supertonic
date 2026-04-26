@@ -330,11 +330,7 @@ def load_text_to_speech(onnx_dir: str, use_gpu: bool = False) -> TextToSpeech:
     opts = ort.SessionOptions()
     if use_gpu:
         available = ort.get_available_providers()
-        if "DmlExecutionProvider" in available:
-            # DirectML has known issues with SuperTonic models — fall back to CPU
-            print("DirectML GPU detected but not fully supported for this model. Using CPU.")
-            providers = ["CPUExecutionProvider"]
-        elif "CUDAExecutionProvider" in available:
+        if "CUDAExecutionProvider" in available:
             providers = ["CUDAExecutionProvider", "CPUExecutionProvider"]
             print("Using CUDA GPU for inference")
         elif "TensorrtExecutionProvider" in available:
@@ -342,7 +338,7 @@ def load_text_to_speech(onnx_dir: str, use_gpu: bool = False) -> TextToSpeech:
             print("Using TensorRT GPU for inference")
         else:
             providers = ["CPUExecutionProvider"]
-            print("No GPU provider available, falling back to CPU")
+            print("No CUDA/TensorRT GPU available, using CPU")
     else:
         providers = ["CPUExecutionProvider"]
         print("Using CPU for inference")

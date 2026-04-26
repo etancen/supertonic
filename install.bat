@@ -63,11 +63,6 @@ if %ERRORLEVEL% neq 0 (
     pause
     exit /b 1
 )
-pip install onnxruntime-directml --quiet
-if %ERRORLEVEL% neq 0 (
-    echo WARNING: DirectML GPU not available, using CPU fallback
-    pip install onnxruntime --quiet
-)
 echo   Dependencies installed
 
 :: --- Install Obsidian plugin ---
