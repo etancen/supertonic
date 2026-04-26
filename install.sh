@@ -53,24 +53,15 @@ fi
 # --- Install dependencies ---
 echo "[4/5] Installing Python dependencies..."
 source "$VENV_DIR/bin/activate"
-pip install -r "$SCRIPT_DIR/py/requirements.txt" --quiet
+pip install -r "$SCRIPT_DIR/py/requirements.txt"
 
-# Install platform-appropriate ONNX Runtime
+# Install platform-appropriate ONNX Runtime if not already covered
 OS="$(uname -s)"
 if [ "$OS" = "Linux" ]; then
     if command -v nvidia-smi &>/dev/null; then
-        pip install onnxruntime-gpu --quiet 2>/dev/null || pip install onnxruntime --quiet
-        echo "  ONNX Runtime GPU installed (CUDA)"
-    else
-        pip install onnxruntime --quiet
-        echo "  ONNX Runtime CPU installed"
+        pip install nvidia-cublas-cu12 nvidia-cudnn-cu12 nvidia-cuda-runtime-cu12 nvidia-cufft-cu12 nvidia-cusolver-cu12 nvidia-cusparse-cu12 nvidia-curand-cu12 nvidia-nvjitlink-cu12 2>/dev/null
+        echo "  NVIDIA CUDA 12 libraries installed"
     fi
-elif [ "$OS" = "Darwin" ]; then
-    pip install onnxruntime --quiet
-    echo "  ONNX Runtime CPU installed (macOS)"
-else
-    pip install onnxruntime --quiet
-    echo "  ONNX Runtime CPU installed"
 fi
 echo "  Dependencies installed"
 

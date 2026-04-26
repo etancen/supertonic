@@ -1,9 +1,59 @@
 import json
 import os
+import sys
 import time
 from contextlib import contextmanager
 from typing import Optional
 from unicodedata import normalize
+
+
+def _setup_cuda_dll_path() -> None:
+    """Preload nvidia CUDA/cuDNN DLLs from pip packages so onnxruntime finds them.
+
+    Must be called BEFORE importing onnxruntime on Windows, because
+    DLL resolution happens when the CUDA provider DLL is loaded.
+    """
+    if sys.platform != "win32":
+        return
+    try:
+        import ctypes
+
+        site = os.path.join(sys.prefix, "Lib", "site-packages")
+        nvidia_root = os.path.join(site, "nvidia")
+        if not os.path.isdir(nvidia_root):
+            return
+
+        # Collect all nvidia */bin dirs and add to DLL search path
+        dll_dirs: list[str] = []
+        for root, dirs, _ in os.walk(nvidia_root):
+            if os.path.basename(root) == "bin":
+                dll_dirs.append(root)
+                os.add_dll_directory(root)
+
+        if not dll_dirs:
+            return
+
+        # Push to PATH so LoadLibrary finds them
+        os.environ["PATH"] = os.pathsep.join(dll_dirs) + os.pathsep + os.environ["PATH"]
+
+        # Preload key DLLs so onnxruntime's ctypes.CDLL succeeds
+        for dll_name in ["cublas64_12.dll", "cublasLt64_12.dll", "cudnn64_9.dll",
+                         "cudart64_12.dll", "cufft64_12.dll", "cufft64_11.dll",
+                         "cusolver64_12.dll", "cusparse64_12.dll", "curand64_12.dll",
+                         "nvjitlink64_12.dll"]:
+            for dll_dir in dll_dirs:
+                dll_path = os.path.join(dll_dir, dll_name)
+                if os.path.isfile(dll_path):
+                    try:
+                        ctypes.CDLL(dll_path)
+                    except OSError:
+                        pass
+                    break
+    except Exception:
+        pass
+
+
+_setup_cuda_dll_path()
 
 import numpy as np
 import onnxruntime as ort

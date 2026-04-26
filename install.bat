@@ -57,7 +57,7 @@ if not exist "%VENV_DIR%" (
 :: --- Install dependencies ---
 echo [4/5] Installing Python dependencies...
 call "%VENV_DIR%\Scripts\activate.bat
-pip install -r "%~dp0py\requirements.txt" --quiet
+pip install -r "%~dp0py\requirements.txt"
 if %ERRORLEVEL% neq 0 (
     echo ERROR: Failed to install dependencies
     pause
