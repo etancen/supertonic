@@ -56,12 +56,17 @@ if not exist "%VENV_DIR%" (
 
 :: --- Install dependencies ---
 echo [4/5] Installing Python dependencies...
-call "%VENV_DIR%\Scripts\activate.bat"
+call "%VENV_DIR%\Scripts\activate.bat
 pip install -r "%~dp0py\requirements.txt" --quiet
 if %ERRORLEVEL% neq 0 (
     echo ERROR: Failed to install dependencies
     pause
     exit /b 1
+)
+pip install onnxruntime-directml --quiet
+if %ERRORLEVEL% neq 0 (
+    echo WARNING: DirectML GPU not available, using CPU fallback
+    pip install onnxruntime --quiet
 )
 echo   Dependencies installed
 

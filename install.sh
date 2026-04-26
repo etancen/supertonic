@@ -54,6 +54,24 @@ fi
 echo "[4/5] Installing Python dependencies..."
 source "$VENV_DIR/bin/activate"
 pip install -r "$SCRIPT_DIR/py/requirements.txt" --quiet
+
+# Install platform-appropriate ONNX Runtime
+OS="$(uname -s)"
+if [ "$OS" = "Linux" ]; then
+    if command -v nvidia-smi &>/dev/null; then
+        pip install onnxruntime-gpu --quiet 2>/dev/null || pip install onnxruntime --quiet
+        echo "  ONNX Runtime GPU installed (CUDA)"
+    else
+        pip install onnxruntime --quiet
+        echo "  ONNX Runtime CPU installed"
+    fi
+elif [ "$OS" = "Darwin" ]; then
+    pip install onnxruntime --quiet
+    echo "  ONNX Runtime CPU installed (macOS)"
+else
+    pip install onnxruntime --quiet
+    echo "  ONNX Runtime CPU installed"
+fi
 echo "  Dependencies installed"
 
 # --- Install Obsidian plugin ---

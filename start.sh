@@ -11,17 +11,33 @@ fi
 source "$VENV_DIR/bin/activate"
 
 USE_GPU=""
+AUTO_GPU=0
 for arg in "$@"; do
     case "$arg" in
         --gpu|-g) USE_GPU="--use-gpu" ;;
+        --no-gpu) AUTO_GPU=0 ;;
     esac
 done
+
+# Auto-detect GPU if not explicitly set
+if [ -z "$USE_GPU" ] && [ "$AUTO_GPU" != "0" ]; then
+    OS="$(uname -s)"
+    if [ "$OS" = "Windows" ] || [ "$OS" = "MINGW"* ]; then
+        python -c "import onnxruntime; p=onnxruntime.get_available_providers(); exit(0 if 'DmlExecutionProvider' in p else 1)" 2>/dev/null && USE_GPU="--use-gpu"
+    elif command -v nvidia-smi &>/dev/null; then
+        python -c "import onnxruntime; p=onnxruntime.get_available_providers(); exit(0 if 'CUDAExecutionProvider' in p else 1)" 2>/dev/null && USE_GPU="--use-gpu"
+    fi
+fi
 
 echo "============================================"
 echo "  SuperTonic TTS API Server"
 echo "============================================"
 echo "  Assets: $SCRIPT_DIR/assets"
-echo "  GPU:    ${USE_GPU:-no}"
+if [ -n "$USE_GPU" ]; then
+    echo "  GPU:    auto-detected"
+else
+    echo "  GPU:    no"
+fi
 echo "  URL:    http://localhost:8765"
 echo "============================================"
 echo ""
