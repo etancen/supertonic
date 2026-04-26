@@ -19,6 +19,7 @@ export default class SuperTonicPlugin extends Plugin {
     settings: SuperTonicSettings;
     private audioContext: AudioContext | null = null;
     private activeSource: AudioBufferSourceNode | null = null;
+    private stopped = false;
 
     async onload() {
         await this.loadSettings();
@@ -41,68 +42,94 @@ export default class SuperTonicPlugin extends Plugin {
             id: "stop-speaking",
             name: "Stop speaking",
             callback: () => {
-                this.stopSpeaking();
+                this.stopped = true;
+                this.stopPlaying();
             },
         });
     }
 
     onunload() {
-        this.stopSpeaking();
+        this.stopped = true;
+        this.stopPlaying();
         this.audioContext?.close();
         this.audioContext = null;
     }
 
     private async speakText(text: string) {
-        this.stopSpeaking();
+        this.stopped = false;
+        this.stopPlaying();
 
-        new Notice("SuperTonic: Synthesizing...");
+        const chunks = chunkBySentences(text, 5000);
 
-        try {
-            const response = await requestUrl({
-                url: `${this.settings.apiUrl}/tts`,
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    text,
-                    voice: this.settings.voice,
-                    lang: this.settings.language,
-                    speed: this.settings.speed,
-                    total_step: this.settings.totalStep,
-                }),
-            });
+        if (chunks.length > 1) {
+            new Notice(`SuperTonic: ${chunks.length} segments, starting...`);
+        } else {
+            new Notice("SuperTonic: Synthesizing...");
+        }
 
-            if (response.status !== 200) {
-                new Notice(`SuperTonic: API error ${response.status}`);
+        for (let i = 0; i < chunks.length; i++) {
+            if (this.stopped) return;
+
+            try {
+                const response = await requestUrl({
+                    url: `${this.settings.apiUrl}/tts`,
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        text: chunks[i],
+                        voice: this.settings.voice,
+                        lang: this.settings.language,
+                        speed: this.settings.speed,
+                        total_step: this.settings.totalStep,
+                    }),
+                });
+
+                if (this.stopped) return;
+
+                if (response.status !== 200) {
+                    new Notice(`SuperTonic: API error ${response.status}`);
+                    return;
+                }
+
+                if (!this.audioContext) {
+                    this.audioContext = new AudioContext();
+                }
+
+                const audioBuffer = await this.audioContext.decodeAudioData(
+                    response.arrayBuffer
+                );
+
+                if (this.stopped) return;
+
+                await this.playBuffer(audioBuffer);
+
+                if (this.stopped) return;
+            } catch (e) {
+                if (!this.stopped) {
+                    new Notice(`SuperTonic: ${e.message}`);
+                }
                 return;
             }
+        }
+    }
 
-            if (!this.audioContext) {
-                this.audioContext = new AudioContext();
-            }
-
-            const audioBuffer = await this.audioContext.decodeAudioData(
-                response.arrayBuffer
-            );
-
-            const source = this.audioContext.createBufferSource();
-            source.buffer = audioBuffer;
-            source.connect(this.audioContext.destination);
+    private playBuffer(buffer: AudioBuffer): Promise<void> {
+        return new Promise((resolve) => {
+            const source = this.audioContext!.createBufferSource();
+            source.buffer = buffer;
+            source.connect(this.audioContext!.destination);
             source.onended = () => {
                 if (this.activeSource === source) {
                     this.activeSource = null;
                 }
+                resolve();
             };
-
             this.activeSource = source;
             source.start();
-
-            new Notice("SuperTonic: Playing...");
-        } catch (e) {
-            new Notice(`SuperTonic: ${e.message}`);
-        }
+        });
     }
 
-    private stopSpeaking() {
+    private stopPlaying() {
         if (this.activeSource) {
             try {
                 this.activeSource.stop();
@@ -218,6 +245,24 @@ class SuperTonicSettingTab extends PluginSettingTab {
 
         const tipEl = containerEl.createEl("p");
         tipEl.innerHTML =
-            'Bind a hotkey in <b>Settings → Hotkeys</b>: search for <b>"SuperTonic: Speak selected text"</b> and set <b>Ctrl+Shift+P</b>.';
+            'Bind a hotkey in <b>Settings -> Hotkeys</b>: search for <b>"SuperTonic: Speak selected text"</b> and set <b>Ctrl+Shift+P</b>.';
     }
+}
+
+function chunkBySentences(text: string, maxLen: number): string[] {
+    const sentenceRe = /(?<=[.!?])\s+/;
+    const sentences = text.split(sentenceRe);
+    const chunks: string[] = [];
+    let current = "";
+
+    for (const s of sentences) {
+        if (current.length + s.length + 1 <= maxLen) {
+            current += (current ? " " : "") + s;
+        } else {
+            if (current) chunks.push(current.trim());
+            current = s;
+        }
+    }
+    if (current) chunks.push(current.trim());
+    return chunks;
 }
