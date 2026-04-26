@@ -64,7 +64,7 @@ def get_voice_style(voice: str):
 
 
 class TTSRequest(BaseModel):
-    text: str = Field(..., description="Text to synthesize", min_length=1, max_length=5000)
+    text: str = Field(..., description="Text to synthesize", min_length=1, max_length=4000)
     voice: str = Field("M1", description="Voice style name", pattern="^[MF][1-5]$")
     lang: str = Field("en", description="Language code")
     speed: float = Field(1.05, description="Speech speed (0.5-2.0)", ge=0.5, le=2.0)

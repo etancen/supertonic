@@ -59,7 +59,7 @@ export default class SuperTonicPlugin extends Plugin {
         this.stopped = false;
         this.stopPlaying();
 
-        const chunks = chunkBySentences(text, 5000);
+        const chunks = chunkBySentences(text, 4000);
 
         if (chunks.length > 1) {
             new Notice(`SuperTonic: ${chunks.length} segments, starting...`);
@@ -255,13 +255,25 @@ function chunkBySentences(text: string, maxLen: number): string[] {
     const chunks: string[] = [];
     let current = "";
 
-    for (const s of sentences) {
-        if (current.length + s.length + 1 <= maxLen) {
-            current += (current ? " " : "") + s;
+    const addChunk = (s: string) => {
+        if (s.length <= maxLen) {
+            if (current.length + s.length + 1 <= maxLen) {
+                current += (current ? " " : "") + s;
+            } else {
+                if (current) chunks.push(current.trim());
+                current = s;
+            }
         } else {
             if (current) chunks.push(current.trim());
-            current = s;
+            current = "";
+            for (let i = 0; i < s.length; i += maxLen) {
+                chunks.push(s.slice(i, i + maxLen).trim());
+            }
         }
+    };
+
+    for (const s of sentences) {
+        addChunk(s);
     }
     if (current) chunks.push(current.trim());
     return chunks;
