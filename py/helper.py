@@ -283,7 +283,14 @@ def get_latent_mask(
 def load_onnx(
     onnx_path: str, opts: ort.SessionOptions, providers: list[str]
 ) -> ort.InferenceSession:
-    return ort.InferenceSession(onnx_path, sess_options=opts, providers=providers)
+    try:
+        return ort.InferenceSession(onnx_path, sess_options=opts, providers=providers)
+    except Exception as e:
+        cpu_providers = ["CPUExecutionProvider"]
+        if providers == cpu_providers:
+            raise
+        print(f"  GPU failed for {os.path.basename(onnx_path)}, falling back to CPU: {e}")
+        return ort.InferenceSession(onnx_path, sess_options=opts, providers=cpu_providers)
 
 
 def load_onnx_all(
@@ -322,6 +329,8 @@ def load_text_processor(onnx_dir: str) -> UnicodeProcessor:
 def load_text_to_speech(onnx_dir: str, use_gpu: bool = False) -> TextToSpeech:
     opts = ort.SessionOptions()
     if use_gpu:
+        opts.enable_mem_pattern = False
+        opts.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_BASIC
         available = ort.get_available_providers()
         if "DmlExecutionProvider" in available:
             providers = ["DmlExecutionProvider", "CPUExecutionProvider"]
