@@ -308,7 +308,17 @@ def load_onnx_all(
 
     dp_ort = load_onnx(dp_onnx_path, opts, providers)
     text_enc_ort = load_onnx(text_enc_onnx_path, opts, providers)
-    vector_est_ort = load_onnx(vector_est_onnx_path, opts, providers)
+
+    # vector_estimator has known DML incompatibility — force CPU for this model
+    if "DmlExecutionProvider" in providers:
+        print("  vector_estimator: using CPU (DML incompatible)")
+        vector_est_providers = ["CPUExecutionProvider"]
+        vector_est_opts = ort.SessionOptions()
+    else:
+        vector_est_providers = providers
+        vector_est_opts = opts
+    vector_est_ort = load_onnx(vector_est_onnx_path, vector_est_opts, vector_est_providers)
+
     vocoder_ort = load_onnx(vocoder_onnx_path, opts, providers)
     return dp_ort, text_enc_ort, vector_est_ort, vocoder_ort
 
