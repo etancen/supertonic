@@ -1,0 +1,10 @@
+{
+  "id": "supertonic-tts",
+  "name": "SuperTonic TTS",
+  "version": "1.0.0",
+  "minAppVersion": "0.15.0",
+  "description": "Speak selected text using SuperTonic on-device TTS API. Recommended hotkey: Ctrl+Shift+P.",
+  "author": "SuperTonic",
+  "authorUrl": "https://github.com/supertone-inc/supertonic",
+  "isDesktopOnly": false
+}

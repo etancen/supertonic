@@ -322,7 +322,19 @@ def load_text_processor(onnx_dir: str) -> UnicodeProcessor:
 def load_text_to_speech(onnx_dir: str, use_gpu: bool = False) -> TextToSpeech:
     opts = ort.SessionOptions()
     if use_gpu:
-        raise NotImplementedError("GPU mode is not fully tested")
+        available = ort.get_available_providers()
+        if "DmlExecutionProvider" in available:
+            providers = ["DmlExecutionProvider", "CPUExecutionProvider"]
+            print("Using DirectML GPU for inference")
+        elif "CUDAExecutionProvider" in available:
+            providers = ["CUDAExecutionProvider", "CPUExecutionProvider"]
+            print("Using CUDA GPU for inference")
+        elif "TensorrtExecutionProvider" in available:
+            providers = ["TensorrtExecutionProvider", "CUDAExecutionProvider", "CPUExecutionProvider"]
+            print("Using TensorRT GPU for inference")
+        else:
+            providers = ["CPUExecutionProvider"]
+            print("No GPU provider available, falling back to CPU")
     else:
         providers = ["CPUExecutionProvider"]
         print("Using CPU for inference")

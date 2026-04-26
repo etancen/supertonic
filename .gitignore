@@ -1,13 +1,11 @@
-assets/*
 assets/.git
 assets/.gitignore
 assets/.gitattributes
-
-*.onnx
-onnx
+assets/onnx/*.onnx
 
 # Output files
 results
+/onnx
 
 # Python
 __pycache__
