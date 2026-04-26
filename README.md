@@ -186,9 +186,49 @@ open ExampleiOSApp.xcodeproj
 - Choose your iPhone as run destination → Build & Run
 
 
+### One-Click Deploy (API Server + Obsidian Plugin)
+
+For a complete text-to-speech workflow with Obsidian integration, use the one-click deploy scripts:
+
+**Windows**
+```batch
+install.bat      # Create venv, install dependencies, deploy Obsidian plugin
+start.bat        # Launch API server (CPU)
+start.bat --gpu  # Launch API server (GPU, requires DirectML)
+```
+
+**Linux / macOS**
+```bash
+chmod +x install.sh start.sh
+./install.sh         # Create venv, install dependencies, deploy Obsidian plugin
+./start.sh           # Launch API server (CPU)
+./start.sh --gpu     # Launch API server (GPU, requires CUDA/DirectML)
+```
+
+The install script automatically:
+1. Checks for required ONNX models in `assets/onnx/` (prompts download from HuggingFace if missing)
+2. Creates a Python virtual environment and installs dependencies
+3. Deploys the Obsidian plugin to `$OBSIDIAN_PLUGIN_DIR/supertonic-tts/`
+
+**Obsidian Setup**
+1. Enable "SuperTonic TTS" in Settings → Community Plugins
+2. Bind `Ctrl+Shift+P` in Settings → Hotkeys to "SuperTonic: Speak selected text"
+3. Select text in any note and press `Ctrl+Shift+P` to hear it spoken
+
+**Plugin Configuration** (Settings → SuperTonic TTS)
+| Setting | Default | Description |
+|---------|---------|-------------|
+| API Server URL | `http://localhost:8765` | TTS API address |
+| Voice | M1 | Voice style (M1–M5, F1–F5) |
+| Language | English | Text language (en/ko/es/pt/fr) |
+| Speed | 1.05 | Speech speed (0.5–2.0) |
+| Quality steps | 5 | Denoising steps (3–10) |
+
+See `obsidian-plugin/` for plugin source and `py/api_server.py` for the API implementation.
+
 ### Technical Details
 
-- **Runtime**: ONNX Runtime for cross-platform inference (CPU-optimized; GPU mode is not tested)
+- **Runtime**: ONNX Runtime for cross-platform inference (GPU acceleration via DirectML on Windows)
 - **Browser Support**: onnxruntime-web for client-side inference
 - **Batch Processing**: Supports batch inference for improved throughput
 - **Audio Output**: Outputs 16-bit WAV files
