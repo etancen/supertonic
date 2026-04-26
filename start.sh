@@ -39,12 +39,16 @@ else
     echo "  GPU:    no"
 fi
 echo "  URL:    http://localhost:8765"
+echo "  Log:    $SCRIPT_DIR/logs/server.log"
 echo "============================================"
 echo ""
 echo "Press Ctrl+C to stop"
 echo ""
 
+mkdir -p "$SCRIPT_DIR/logs"
+
 python "$SCRIPT_DIR/py/api_server.py" \
     --onnx-dir "$SCRIPT_DIR/assets/onnx" \
     --voice-dir "$SCRIPT_DIR/assets/voice_styles" \
+    --log-file "$SCRIPT_DIR/logs/server.log" \
     $USE_GPU

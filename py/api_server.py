@@ -1,11 +1,15 @@
 import argparse
 import io
+import logging
 import os
+import sys
+import traceback
 from contextlib import asynccontextmanager
+from datetime import datetime
 
 import soundfile as sf
-from fastapi import FastAPI, HTTPException, Query
-from fastapi.responses import Response
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel, Field
 
 from helper import (
@@ -22,6 +26,8 @@ DEFAULT_ONNX_DIR = "assets/onnx"
 DEFAULT_VOICE_DIR = "assets/voice_styles"
 
 use_gpu = False
+
+logger = logging.getLogger("supertonic")
 
 
 @asynccontextmanager
@@ -75,13 +81,17 @@ async def synthesize(request: TTSRequest):
         )
 
     style = get_voice_style(request.voice)
-    wav, duration = tts_engine(
-        request.text,
-        request.lang,
-        style,
-        request.total_step,
-        request.speed,
-    )
+    try:
+        wav, duration = tts_engine(
+            request.text,
+            request.lang,
+            style,
+            request.total_step,
+            request.speed,
+        )
+    except Exception as e:
+        logger.error(f"Synthesis failed: {e}\n{traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=str(e))
 
     wav_trimmed = wav[0, : int(tts_engine.sample_rate * duration.item())]
     buf = io.BytesIO()
@@ -89,6 +99,12 @@ async def synthesize(request: TTSRequest):
     buf.seek(0)
 
     return Response(content=buf.read(), media_type="audio/wav")
+
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    logger.error(f"Unhandled error on {request.method} {request.url.path}: {exc}\n{traceback.format_exc()}")
+    return JSONResponse(status_code=500, content={"detail": str(exc)})
 
 
 @app.get("/voices", summary="List available voice styles")
@@ -115,6 +131,11 @@ if __name__ == "__main__":
     parser.add_argument("--onnx-dir", type=str, default=DEFAULT_ONNX_DIR, help="ONNX models directory")
     parser.add_argument("--voice-dir", type=str, default=DEFAULT_VOICE_DIR, help="Voice styles directory")
     parser.add_argument("--use-gpu", action="store_true", help="Use CUDA GPU for inference")
+    parser.add_argument("--log-level", type=str, default="info",
+                        choices=["debug", "info", "warning", "error"],
+                        help="Log level (default: info)")
+    parser.add_argument("--log-file", type=str, default=None,
+                        help="Write logs to file (e.g. logs/server.log)")
     args = parser.parse_args()
 
     os.environ["SUPERTONIC_ONNX_DIR"] = args.onnx_dir
@@ -122,4 +143,23 @@ if __name__ == "__main__":
     if args.use_gpu:
         os.environ["SUPERTONIC_USE_GPU"] = "1"
 
-    uvicorn.run(app, host=args.host, port=args.port)
+    # Configure logging
+    log_level = getattr(logging, args.log_level.upper())
+    handlers: list[logging.Handler] = [logging.StreamHandler(sys.stderr)]
+    if args.log_file:
+        os.makedirs(os.path.dirname(args.log_file) or ".", exist_ok=True)
+        handlers.append(logging.FileHandler(args.log_file, encoding="utf-8"))
+
+    logging.basicConfig(
+        level=log_level,
+        format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+        handlers=handlers,
+    )
+
+    log_level_name = logging.getLevelName(log_level)
+    logger.info(f"Starting SuperTonic TTS API on {args.host}:{args.port} (log: {log_level_name})")
+    if args.log_file:
+        logger.info(f"Log file: {args.log_file}")
+
+    uvicorn.run(app, host=args.host, port=args.port, log_level=args.log_level)

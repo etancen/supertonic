@@ -6,6 +6,7 @@ assets/onnx/*.onnx
 # Output files
 results
 /onnx
+logs/
 
 # Python
 __pycache__

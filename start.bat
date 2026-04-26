@@ -34,11 +34,12 @@ echo ============================================
 echo   Assets: %SCRIPT_DIR%assets
 if "%USE_GPU%"=="--use-gpu" (echo   GPU:    auto-detected) else (echo   GPU:    no)
 echo   URL:    http://localhost:8765
+echo   Log:    %SCRIPT_DIR%logs\server.log
 echo ============================================
 echo.
-echo Press Ctrl+C to stop
-echo.
 
-python "%SCRIPT_DIR%py\api_server.py" --onnx-dir "%SCRIPT_DIR%assets\onnx" --voice-dir "%SCRIPT_DIR%assets\voice_styles" %USE_GPU%
+if not exist "%SCRIPT_DIR%logs" mkdir "%SCRIPT_DIR%logs"
+
+python "%SCRIPT_DIR%py\api_server.py" --onnx-dir "%SCRIPT_DIR%assets\onnx" --voice-dir "%SCRIPT_DIR%assets\voice_styles" --log-file "%SCRIPT_DIR%logs\server.log" %USE_GPU%
 
 pause
