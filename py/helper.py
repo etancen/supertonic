@@ -308,17 +308,7 @@ def load_onnx_all(
 
     dp_ort = load_onnx(dp_onnx_path, opts, providers)
     text_enc_ort = load_onnx(text_enc_onnx_path, opts, providers)
-
-    # vector_estimator has known DML incompatibility — force CPU for this model
-    if "DmlExecutionProvider" in providers:
-        print("  vector_estimator: using CPU (DML incompatible)")
-        vector_est_providers = ["CPUExecutionProvider"]
-        vector_est_opts = ort.SessionOptions()
-    else:
-        vector_est_providers = providers
-        vector_est_opts = opts
-    vector_est_ort = load_onnx(vector_est_onnx_path, vector_est_opts, vector_est_providers)
-
+    vector_est_ort = load_onnx(vector_est_onnx_path, opts, providers)
     vocoder_ort = load_onnx(vocoder_onnx_path, opts, providers)
     return dp_ort, text_enc_ort, vector_est_ort, vocoder_ort
 
@@ -339,12 +329,11 @@ def load_text_processor(onnx_dir: str) -> UnicodeProcessor:
 def load_text_to_speech(onnx_dir: str, use_gpu: bool = False) -> TextToSpeech:
     opts = ort.SessionOptions()
     if use_gpu:
-        opts.enable_mem_pattern = False
-        opts.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_BASIC
         available = ort.get_available_providers()
         if "DmlExecutionProvider" in available:
-            providers = ["DmlExecutionProvider", "CPUExecutionProvider"]
-            print("Using DirectML GPU for inference")
+            # DirectML has known issues with SuperTonic models — fall back to CPU
+            print("DirectML GPU detected but not fully supported for this model. Using CPU.")
+            providers = ["CPUExecutionProvider"]
         elif "CUDAExecutionProvider" in available:
             providers = ["CUDAExecutionProvider", "CPUExecutionProvider"]
             print("Using CUDA GPU for inference")
