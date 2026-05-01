@@ -26,7 +26,7 @@ for %%a in (%*) do (
 
 :: --- Auto-detect GPU ---
 if "%USE_GPU%"=="" if "%NO_GPU%"=="0" (
-    "%VENV_DIR%\Scripts\python.exe" -c "import onnxruntime; p=onnxruntime.get_available_providers(); exit(0 if 'CUDAExecutionProvider' in p else 1)" 2>nul
+    "%VENV_DIR%\Scripts\python.exe" -c "import onnxruntime; p=onnxruntime.get_available_providers(^); exit(0 if 'CUDAExecutionProvider' in p else 1^)" 2>nul
     if !ERRORLEVEL! equ 0 set USE_GPU=--use-gpu
 )
 
