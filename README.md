@@ -102,10 +102,16 @@ cd supertonic
 
 The easiest way to get started with the full stack (API server + Obsidian plugin):
 
-**Windows**
+**Windows (PowerShell)**
+```powershell
+.\install.bat           # Creates conda env, installs deps, deploys plugin
+.\start.ps1 --gpu       # Native PS script, starts API server with GPU
+```
+
+**Windows (Command Prompt)**
 ```batch
-install.bat      # Creates conda env, installs deps, deploys plugin
-start.bat --gpu  # Starts API server with GPU acceleration
+install.bat             # Creates conda env, installs deps, deploys plugin
+start.bat --gpu         # Starts API server with GPU acceleration
 ```
 
 **Linux / macOS**
@@ -116,6 +122,8 @@ chmod +x install.sh start.sh
 ```
 
 This sets up a Conda environment named `supertonic` with all dependencies. See [One-Click Deploy](#one-click-deploy-api-server--obsidian-plugin) for details.
+
+> **Note for Windows users:** When running from PowerShell, use `.\start.ps1` (native PowerShell script) for best results. The `start.bat` batch file now includes automatic conda path detection and works both in cmd and when invoked from PowerShell.
 
 ### Manual Setup
 
@@ -215,11 +223,12 @@ For a complete text-to-speech workflow with Obsidian integration, use the one-cl
 
 **Windows**
 ```batch
-install.bat      # Create conda env (supertonic), install deps, deploy Obsidian plugin
-start.bat        # Launch API server (auto-detects CUDA GPU)
-start.bat --gpu  # Launch API server (force GPU)
-start.bat --no-gpu # Launch API server (force CPU)
+install.bat             # Create conda env (supertonic), install deps, deploy plugin
+start.bat               # Launch API server (auto-detects CUDA GPU)
+start.bat --gpu         # Launch API server (force GPU)
+start.bat --no-gpu      # Launch API server (force CPU)
 ```
+For PowerShell: use `.\start.ps1` instead — it runs natively without cmd interop issues.
 
 **Linux / macOS**
 ```bash
