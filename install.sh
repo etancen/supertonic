@@ -2,7 +2,7 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ENV_NAME="supertonic"
+VENV_DIR="$SCRIPT_DIR/venv"
 
 echo "============================================"
 echo "  SuperTonic TTS — One-Click Installer"
@@ -10,7 +10,7 @@ echo "============================================"
 echo ""
 
 # --- Check ONNX models ---
-echo "[1/4] Checking ONNX models..."
+echo "[1/5] Checking ONNX models..."
 ONNX_DIR="$SCRIPT_DIR/assets/onnx"
 if [ ! -f "$ONNX_DIR/duration_predictor.onnx" ]; then
     echo ""
@@ -32,37 +32,41 @@ else
     echo "  Models found"
 fi
 
-# --- Check Conda ---
-echo "[2/4] Checking Conda..."
-if ! command -v conda &>/dev/null; then
-    echo "ERROR: Conda not found. Install Miniconda from https://docs.conda.io"
+# --- Check Python ---
+echo "[2/5] Checking Python..."
+if ! command -v python3 &>/dev/null && ! command -v python &>/dev/null; then
+    echo "ERROR: Python not found. Install Python 3.10+"
     exit 1
 fi
-echo "  Found $(conda --version 2>&1)"
+PYTHON=$(command -v python3 || command -v python)
+echo "  Found $($PYTHON --version 2>&1)"
 
-# --- Check / Create conda env ---
-echo "[3/4] Setting up conda environment..."
-if ! conda env list | grep -q "^${ENV_NAME} "; then
-    echo "  Creating conda environment '${ENV_NAME}'..."
-    conda create -n "$ENV_NAME" python=3.10 -y
-    echo "  Installing Python dependencies..."
-    conda run -n "$ENV_NAME" pip install -r "$SCRIPT_DIR/py/requirements.txt"
-
-    # Install platform-appropriate CUDA libraries
-    OS="$(uname -s)"
-    if [ "$OS" = "Linux" ]; then
-        if command -v nvidia-smi &>/dev/null; then
-            conda run -n "$ENV_NAME" pip install nvidia-cublas-cu12 nvidia-cudnn-cu12 nvidia-cuda-runtime-cu12 nvidia-cufft-cu12 nvidia-cusolver-cu12 nvidia-cusparse-cu12 nvidia-curand-cu12 nvidia-nvjitlink-cu12 2>/dev/null
-            echo "  NVIDIA CUDA 12 libraries installed"
-        fi
-    fi
-    echo "  Dependencies installed"
+# --- Create venv ---
+echo "[3/5] Setting up virtual environment..."
+if [ ! -f "$VENV_DIR/bin/python" ]; then
+    echo "  Creating virtual environment..."
+    $PYTHON -m venv "$VENV_DIR"
+    echo "  Virtual environment created"
 else
-    echo "  Conda environment '${ENV_NAME}' already exists"
+    echo "  Virtual environment already exists"
 fi
 
+# --- Install dependencies ---
+echo "[4/5] Installing Python dependencies..."
+"$VENV_DIR/bin/python" -m pip install -r "$SCRIPT_DIR/py/requirements.txt"
+
+# Install platform-appropriate CUDA libraries
+OS="$(uname -s)"
+if [ "$OS" = "Linux" ]; then
+    if command -v nvidia-smi &>/dev/null; then
+        "$VENV_DIR/bin/python" -m pip install nvidia-cublas-cu12 nvidia-cudnn-cu12 nvidia-cuda-runtime-cu12 nvidia-cufft-cu12 nvidia-cusolver-cu12 nvidia-cusparse-cu12 nvidia-curand-cu12 nvidia-nvjitlink-cu12 2>/dev/null
+        echo "  NVIDIA CUDA 12 libraries installed"
+    fi
+fi
+echo "  Dependencies installed"
+
 # --- Install Obsidian plugin ---
-echo "[4/4] Setting up Obsidian plugin..."
+echo "[5/5] Setting up Obsidian plugin..."
 PLUGIN_SRC="$SCRIPT_DIR/obsidian-plugin"
 OBS_PLUGINS="${OBSIDIANPLUGINS:-}"
 
@@ -96,11 +100,9 @@ echo "============================================"
 echo "  Installation Complete!"
 echo "============================================"
 echo ""
-echo "  Environment:  conda activate $ENV_NAME"
-echo ""
 echo "  Usage:"
-echo "    ./start.sh         - Launch API server"
-echo "    ./start.sh --gpu   - Launch with GPU acceleration"
+echo "    ./start.sh           - Launch API server"
+echo "    ./start.sh --gpu     - Launch with GPU acceleration"
 echo ""
 echo "  In Obsidian:"
 echo "    Settings > Community Plugins > Enable 'SuperTonic TTS'"

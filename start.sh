@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ENV_NAME="supertonic"
+VENV_DIR="$SCRIPT_DIR/venv"
 
-if ! conda env list | grep -q "^${ENV_NAME} "; then
-    echo "Conda environment '${ENV_NAME}' not found. Run ./install.sh first."
+if [ ! -f "$VENV_DIR/bin/python" ]; then
+    echo "Virtual environment not found. Run ./install.sh first."
     exit 1
 fi
 
@@ -21,9 +21,9 @@ done
 if [ -z "$USE_GPU" ] && [ "$AUTO_GPU" != "0" ]; then
     OS="$(uname -s)"
     if [ "$OS" = "Windows" ] || [ "$OS" = "MINGW"* ]; then
-        conda run -n "$ENV_NAME" python -c "import onnxruntime; p=onnxruntime.get_available_providers(); exit(0 if 'DmlExecutionProvider' in p else 1)" 2>/dev/null && USE_GPU="--use-gpu"
+        "$VENV_DIR/Scripts/python.exe" -c "import onnxruntime; p=onnxruntime.get_available_providers(); exit(0 if 'DmlExecutionProvider' in p else 1)" 2>/dev/null && USE_GPU="--use-gpu"
     elif command -v nvidia-smi &>/dev/null; then
-        conda run -n "$ENV_NAME" python -c "import onnxruntime; p=onnxruntime.get_available_providers(); exit(0 if 'CUDAExecutionProvider' in p else 1)" 2>/dev/null && USE_GPU="--use-gpu"
+        "$VENV_DIR/bin/python" -c "import onnxruntime; p=onnxruntime.get_available_providers(); exit(0 if 'CUDAExecutionProvider' in p else 1)" 2>/dev/null && USE_GPU="--use-gpu"
     fi
 fi
 
@@ -45,7 +45,7 @@ echo ""
 
 mkdir -p "$SCRIPT_DIR/logs"
 
-conda run -n "$ENV_NAME" python "$SCRIPT_DIR/py/api_server.py" \
+"$VENV_DIR/bin/python" "$SCRIPT_DIR/py/api_server.py" \
     --onnx-dir "$SCRIPT_DIR/assets/onnx" \
     --voice-dir "$SCRIPT_DIR/assets/voice_styles" \
     --log-file "$SCRIPT_DIR/logs/server.log" \

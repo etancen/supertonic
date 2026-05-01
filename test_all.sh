@@ -8,15 +8,23 @@ set -e  # Exit on error
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd "$SCRIPT_DIR"
 
-ENV_NAME="supertonic"
-USE_CONDA=false
-
-# Check if conda environment exists and use it for Python tests
-if command -v conda &>/dev/null && conda env list | grep -q "^${ENV_NAME} "; then
-    USE_CONDA=true
-    echo "Using conda environment: ${ENV_NAME}"
+# Detect Python runner (prefer local venv)
+VENV_PYTHON="$SCRIPT_DIR/venv/bin/python"
+if [ -f "$VENV_PYTHON" ]; then
+    PY_RUNNER="$VENV_PYTHON"
+    echo "Using local venv: venv/"
+elif [ -f "$SCRIPT_DIR/venv/Scripts/python.exe" ]; then
+    PY_RUNNER="$SCRIPT_DIR/venv/Scripts/python.exe"
+    echo "Using local venv: venv/"
+elif command -v python3 &>/dev/null; then
+    PY_RUNNER="python3"
+    echo "Using system Python: $(python3 --version 2>&1)"
+elif command -v python &>/dev/null; then
+    PY_RUNNER="python"
+    echo "Using system Python: $(python --version 2>&1)"
 else
-    echo "Conda environment '${ENV_NAME}' not found, using system Python"
+    echo "ERROR: Python not found"
+    exit 1
 fi
 
 echo "=================================="
@@ -70,11 +78,7 @@ echo ""
 
 # Helper: resolve Python runner
 py_run() {
-    if [ "$USE_CONDA" = true ]; then
-        conda run -n "$ENV_NAME" python "$@"
-    else
-        python "$@"
-    fi
+    $PY_RUNNER "$@"
 }
 
 # Batch inference test data - multilingual examples
@@ -198,25 +202,13 @@ run_test() {
 # ====================================
 echo -e "${YELLOW}Testing Python...${NC}"
 if [ "$TEST_DEFAULT" = true ]; then
-    if [ "$USE_CONDA" = true ]; then
-        run_test "Python (default)" "py" "conda run -n $ENV_NAME python example_onnx.py --onnx-dir $SCRIPT_DIR/assets/onnx --voice-style $SCRIPT_DIR/assets/voice_styles/M1.json"
-    else
-        run_test "Python (default)" "py" "python example_onnx.py --onnx-dir $SCRIPT_DIR/assets/onnx --voice-style $SCRIPT_DIR/assets/voice_styles/M1.json"
-    fi
+    run_test "Python (default)" "py" "$PY_RUNNER example_onnx.py --onnx-dir $SCRIPT_DIR/assets/onnx --voice-style $SCRIPT_DIR/assets/voice_styles/M1.json"
 fi
 if [ "$TEST_BATCH" = true ]; then
-    if [ "$USE_CONDA" = true ]; then
-        run_test "Python (batch)" "py" "conda run -n $ENV_NAME python example_onnx.py --batch --onnx-dir $SCRIPT_DIR/assets/onnx --voice-style $SCRIPT_DIR/$BATCH_VOICE_STYLE_1 $SCRIPT_DIR/$BATCH_VOICE_STYLE_2 --text '$BATCH_TEXT_1' '$BATCH_TEXT_2' --lang $BATCH_LANG_1 $BATCH_LANG_2"
-    else
-        run_test "Python (batch)" "py" "python example_onnx.py --batch --onnx-dir $SCRIPT_DIR/assets/onnx --voice-style $SCRIPT_DIR/$BATCH_VOICE_STYLE_1 $SCRIPT_DIR/$BATCH_VOICE_STYLE_2 --text '$BATCH_TEXT_1' '$BATCH_TEXT_2' --lang $BATCH_LANG_1 $BATCH_LANG_2"
-    fi
+    run_test "Python (batch)" "py" "$PY_RUNNER example_onnx.py --batch --onnx-dir $SCRIPT_DIR/assets/onnx --voice-style $SCRIPT_DIR/$BATCH_VOICE_STYLE_1 $SCRIPT_DIR/$BATCH_VOICE_STYLE_2 --text '$BATCH_TEXT_1' '$BATCH_TEXT_2' --lang $BATCH_LANG_1 $BATCH_LANG_2"
 fi
 if [ "$TEST_LONGFORM" = true ]; then
-    if [ "$USE_CONDA" = true ]; then
-        run_test "Python (long-form)" "py" "conda run -n $ENV_NAME python example_onnx.py --onnx-dir $SCRIPT_DIR/assets/onnx --voice-style $SCRIPT_DIR/$LONGFORM_VOICE_STYLE --text '$LONGFORM_TEXT'"
-    else
-        run_test "Python (long-form)" "py" "python example_onnx.py --onnx-dir $SCRIPT_DIR/assets/onnx --voice-style $SCRIPT_DIR/$LONGFORM_VOICE_STYLE --text '$LONGFORM_TEXT'"
-    fi
+    run_test "Python (long-form)" "py" "$PY_RUNNER example_onnx.py --onnx-dir $SCRIPT_DIR/assets/onnx --voice-style $SCRIPT_DIR/$LONGFORM_VOICE_STYLE --text '$LONGFORM_TEXT'"
 fi
 
 # ====================================

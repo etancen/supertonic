@@ -104,13 +104,13 @@ The easiest way to get started with the full stack (API server + Obsidian plugin
 
 **Windows (PowerShell)**
 ```powershell
-.\install.bat           # Creates conda env, installs deps, deploys plugin
+.\install.bat           # Creates venv, installs deps, deploys plugin
 .\start.ps1 --gpu       # Native PS script, starts API server with GPU
 ```
 
 **Windows (Command Prompt)**
 ```batch
-install.bat             # Creates conda env, installs deps, deploys plugin
+install.bat             # Creates venv, installs deps, deploys plugin
 start.bat --gpu         # Starts API server with GPU acceleration
 ```
 
@@ -121,9 +121,9 @@ chmod +x install.sh start.sh
 ./start.sh --gpu
 ```
 
-This sets up a Conda environment named `supertonic` with all dependencies. See [One-Click Deploy](#one-click-deploy-api-server--obsidian-plugin) for details.
+This creates a local `venv/` virtual environment with all dependencies. See [One-Click Deploy](#one-click-deploy-api-server--obsidian-plugin) for details.
 
-> **Note for Windows users:** When running from PowerShell, use `.\start.ps1` (native PowerShell script) for best results. The `start.bat` batch file now includes automatic conda path detection and works both in cmd and when invoked from PowerShell.
+> **Note for Windows users:** When running from PowerShell, use `.\start.ps1` (native PowerShell script) for best results.
 
 ### Manual Setup
 
@@ -219,11 +219,11 @@ open ExampleiOSApp.xcodeproj
 
 For a complete text-to-speech workflow with Obsidian integration, use the one-click deploy scripts:
 
-> **Prerequisites:** [Conda](https://docs.conda.io) (Miniconda or Anaconda) must be installed. For Obsidian plugin deployment, set the `OBSIDIANPLUGINS` environment variable to your vault's `.obsidian\plugins` directory (e.g. `D:\my-vault\.obsidian\plugins`).
+> **Prerequisites:** Python 3.10+ must be installed. For Obsidian plugin deployment, set the `OBSIDIANPLUGINS` environment variable to your vault's `.obsidian\plugins` directory (e.g. `D:\my-vault\.obsidian\plugins`).
 
 **Windows**
 ```batch
-install.bat             # Create conda env (supertonic), install deps, deploy plugin
+install.bat             # Creates venv, installs deps, deploys plugin
 start.bat               # Launch API server (auto-detects CUDA GPU)
 start.bat --gpu         # Launch API server (force GPU)
 start.bat --no-gpu      # Launch API server (force CPU)
@@ -240,7 +240,7 @@ chmod +x install.sh start.sh
 
 The install script automatically:
 1. Checks for required ONNX models in `assets/onnx/` (prompts download from HuggingFace if missing)
-2. Creates a Conda environment named `supertonic` and installs all Python dependencies
+2. Creates a local `venv/` virtual environment and installs all Python dependencies
 3. Runs `deploy-plugin.bat` to copy Obsidian plugin files to `%OBSIDIANPLUGINS%\supertonic-tts\`
 
 **Obsidian Setup**
@@ -265,7 +265,7 @@ See `obsidian-plugin/` for plugin source and `py/api_server.py` for the API impl
 - **Browser Support**: onnxruntime-web for client-side inference
 - **Batch Processing**: Supports batch inference for improved throughput
 - **Audio Output**: Outputs 16-bit WAV files
-- **Environment**: Managed via Conda (`supertonic` environment, Python 3.10+ with `onnxruntime-gpu`)
+- **Environment**: Local `venv/` with Python 3.10+, `onnxruntime-gpu` for CUDA acceleration
 
 ## Performance
 

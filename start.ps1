@@ -1,15 +1,17 @@
 # SuperTonic TTS API Server (PowerShell)
 $SCRIPT_DIR = Split-Path -Parent $MyInvocation.MyCommand.Path
-$ENV_NAME = "supertonic"
+$VENV_PYTHON = Join-Path $SCRIPT_DIR "venv\Scripts\python.exe"
 
-# --- Check conda environment (try run python to verify env exists) ---
-conda run -n $ENV_NAME python --version 2>&1 | Out-Null
-if ($LASTEXITCODE -ne 0) {
-    Write-Host "Conda environment '$ENV_NAME' not found. Run install.bat first." -ForegroundColor Red
+# --- Check virtual environment ---
+if (-not (Test-Path $VENV_PYTHON)) {
+    Write-Host "Virtual environment not found in:" -ForegroundColor Red
+    Write-Host "  $VENV_PYTHON" -ForegroundColor Red
+    Write-Host ""
+    Write-Host "Run install.bat first to create it." -ForegroundColor Yellow
     Read-Host "Press Enter to exit"
     exit 1
 }
-Write-Host "Conda environment '$ENV_NAME' found. Starting API server..."
+Write-Host "Virtual environment found. Starting API server..."
 
 # --- Parse arguments ---
 $UseGPU = $false
@@ -21,7 +23,7 @@ foreach ($arg in $args) {
 
 # --- Auto-detect GPU ---
 if (-not $UseGPU -and -not $NoGPU) {
-    $result = conda run -n $ENV_NAME python -c "import onnxruntime; p=onnxruntime.get_available_providers(); exit(0 if 'CUDAExecutionProvider' in p else 1)" 2>$null
+    & $VENV_PYTHON -c "import onnxruntime; p=onnxruntime.get_available_providers(); exit(0 if 'CUDAExecutionProvider' in p else 1)" 2>$null
     if ($LASTEXITCODE -eq 0) { $UseGPU = $true }
 }
 
@@ -53,4 +55,4 @@ $pyArgs = @(
 if ($UseGPU) { $pyArgs += "--use-gpu" }
 
 # --- Start API server ---
-conda run -n $ENV_NAME python $pyArgs
+& $VENV_PYTHON $pyArgs
