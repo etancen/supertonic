@@ -1,12 +1,10 @@
 # SuperTonic TTS API Server (PowerShell)
-$ErrorActionPreference = "Stop"
-
 $SCRIPT_DIR = Split-Path -Parent $MyInvocation.MyCommand.Path
 $ENV_NAME = "supertonic"
 
-# --- Check conda environment ---
-$envList = conda env list 2>$null
-if ($LASTEXITCODE -ne 0 -or $envList -notmatch $ENV_NAME) {
+# --- Check conda environment (try run python to verify env exists) ---
+conda run -n $ENV_NAME python --version 2>&1 | Out-Null
+if ($LASTEXITCODE -ne 0) {
     Write-Host "Conda environment '$ENV_NAME' not found. Run install.bat first." -ForegroundColor Red
     Read-Host "Press Enter to exit"
     exit 1
