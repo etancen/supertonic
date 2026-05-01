@@ -2,18 +2,20 @@
 setlocal enabledelayedexpansion
 title SuperTonic TTS Installer
 
+set SCRIPT_DIR=%~dp0
+
 echo ============================================
 echo   SuperTonic TTS — One-Click Installer
 echo ============================================
 echo.
 
 :: --- Check ONNX models ---
-echo [1/5] Checking ONNX models...
-set ONNX_DIR=%~dp0assets\onnx
+echo [1/4] Checking ONNX models...
+set ONNX_DIR=%SCRIPT_DIR%assets\onnx
 if not exist "%ONNX_DIR%\duration_predictor.onnx" (
     echo.
     echo   WARNING: ONNX models not found!
-    echo   Download from: https://huggingface.co/SuperTone/supertonic
+    echo   Download from: https://huggingface.co/Supertone/supertonic-2
     echo   Place .onnx files in: %ONNX_DIR%\
     echo.
     echo   Required files:
@@ -28,74 +30,52 @@ if not exist "%ONNX_DIR%\duration_predictor.onnx" (
     echo   Models found
 )
 
-:: --- Check Python ---
-echo [2/5] Checking Python...
-where python >nul 2>nul
+:: --- Check Conda ---
+echo [2/4] Checking Conda...
+where conda >nul 2>nul
 if %ERRORLEVEL% neq 0 (
-    echo ERROR: Python not found. Install Python 3.10+ from https://python.org
+    echo ERROR: Conda not found. Install Miniconda from https://docs.conda.io
     pause
     exit /b 1
 )
-for /f "tokens=2 delims= " %%v in ('python --version 2^>^&1') do set PYVER=%%v
-echo   Found Python %PYVER%
+for /f "tokens=2 delims= " %%v in ('conda --version 2^>^&1') do set CONDAVER=%%v
+echo   Found Conda %CONDAVER%
 
-:: --- Create venv ---
-echo [3/5] Creating virtual environment...
-set VENV_DIR=%~dp0venv
-if not exist "%VENV_DIR%" (
-    python -m venv "%VENV_DIR%"
+:: --- Check / Create conda env ---
+echo [3/4] Setting up conda environment...
+set ENV_NAME=supertonic
+conda env list | findstr /C:"%ENV_NAME%" >nul
+if %ERRORLEVEL% neq 0 (
+    echo   Creating conda environment '%ENV_NAME%'...
+    conda create -n %ENV_NAME% python=3.10 -y
     if %ERRORLEVEL% neq 0 (
-        echo ERROR: Failed to create virtual environment
+        echo ERROR: Failed to create conda environment
         pause
         exit /b 1
     )
-    echo   Virtual environment created
+    echo   Installing Python dependencies...
+    conda run -n %ENV_NAME% pip install -r "%SCRIPT_DIR%py\requirements.txt"
+    if %ERRORLEVEL% neq 0 (
+        echo ERROR: Failed to install dependencies
+        pause
+        exit /b 1
+    )
+    echo   Dependencies installed
 ) else (
-    echo   Virtual environment already exists
+    echo   Conda environment '%ENV_NAME%' already exists
 )
-
-:: --- Install dependencies ---
-echo [4/5] Installing Python dependencies...
-call "%VENV_DIR%\Scripts\activate.bat
-pip install -r "%~dp0py\requirements.txt"
-if %ERRORLEVEL% neq 0 (
-    echo ERROR: Failed to install dependencies
-    pause
-    exit /b 1
-)
-echo   Dependencies installed
 
 :: --- Install Obsidian plugin ---
-echo [5/5] Setting up Obsidian plugin...
-set PLUGIN_SRC=%~dp0obsidian-plugin
-set OBS_PLUGINS=%OBSIDIAN_PLUGIN_DIR%
-
-:: Try to auto-detect Obsidian plugins directory
-if "%OBS_PLUGINS%"=="" (
-    if exist "%USERPROFILE%\.obsidian\plugins" (
-        echo   Found Obsidian vault at: %USERPROFILE%
-        set /p OBS_VAULT="Enter Obsidian vault path (e.g. D:\my-vault): "
-        set "OBS_PLUGINS=!OBS_VAULT!\.obsidian\plugins"
-    )
-)
-
-if not "%OBS_PLUGINS%"=="" (
-    set "TARGET_DIR=%OBS_PLUGINS%\supertonic-tts"
-    if not exist "!TARGET_DIR!" mkdir "!TARGET_DIR!"
-    copy /Y "%PLUGIN_SRC%\main.js" "!TARGET_DIR!\" >nul
-    copy /Y "%PLUGIN_SRC%\manifest.json" "!TARGET_DIR!\" >nul
-    copy /Y "%PLUGIN_SRC%\styles.css" "!TARGET_DIR!\" >nul
-    echo   Obsidian plugin installed to: !TARGET_DIR!
-) else (
-    echo   OBSIDIAN_PLUGIN_DIR not set, skipping plugin install
-    echo   Manually copy obsidian-plugin\*.js obsidian-plugin\*.json obsidian-plugin\*.css to .obsidian\plugins\supertonic-tts\
-)
+echo [4/4] Setting up Obsidian plugin...
+call "%SCRIPT_DIR%deploy-plugin.bat"
 
 :: --- Done ---
 echo.
 echo ============================================
 echo   Installation Complete!
 echo ============================================
+echo.
+echo   Environment:  conda activate supertonic
 echo.
 echo   Usage:
 echo     start.bat          - Launch API server

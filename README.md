@@ -98,7 +98,28 @@ git clone https://github.com/supertone-inc/supertonic.git
 cd supertonic
 ```
 
-### Prerequisites
+### One-Click Setup (Recommended)
+
+The easiest way to get started with the full stack (API server + Obsidian plugin):
+
+**Windows**
+```batch
+install.bat      # Creates conda env, installs deps, deploys plugin
+start.bat --gpu  # Starts API server with GPU acceleration
+```
+
+**Linux / macOS**
+```bash
+chmod +x install.sh start.sh
+./install.sh
+./start.sh --gpu
+```
+
+This sets up a Conda environment named `supertonic` with all dependencies. See [One-Click Deploy](#one-click-deploy-api-server--obsidian-plugin) for details.
+
+### Manual Setup
+
+#### Prerequisites
 
 Before running the examples, download the ONNX models and preset voices, and place them in the `assets` directory:
 
@@ -110,7 +131,7 @@ Before running the examples, download the ONNX models and preset voices, and pla
 git clone https://huggingface.co/Supertone/supertonic-2 assets
 ```
 
-### Quick Start
+#### Quick Start
 
 **Python Example** ([Details](py/))
 ```bash
@@ -190,25 +211,28 @@ open ExampleiOSApp.xcodeproj
 
 For a complete text-to-speech workflow with Obsidian integration, use the one-click deploy scripts:
 
+> **Prerequisites:** [Conda](https://docs.conda.io) (Miniconda or Anaconda) must be installed. For Obsidian plugin deployment, set the `OBSIDIANPLUGINS` environment variable to your vault's `.obsidian\plugins` directory (e.g. `D:\my-vault\.obsidian\plugins`).
+
 **Windows**
 ```batch
-install.bat      # Create venv, install dependencies, deploy Obsidian plugin
-start.bat        # Launch API server (CPU)
-start.bat --gpu  # Launch API server (GPU, requires DirectML)
+install.bat      # Create conda env (supertonic), install deps, deploy Obsidian plugin
+start.bat        # Launch API server (auto-detects CUDA GPU)
+start.bat --gpu  # Launch API server (force GPU)
+start.bat --no-gpu # Launch API server (force CPU)
 ```
 
 **Linux / macOS**
 ```bash
 chmod +x install.sh start.sh
-./install.sh         # Create venv, install dependencies, deploy Obsidian plugin
-./start.sh           # Launch API server (CPU)
-./start.sh --gpu     # Launch API server (GPU, requires CUDA/DirectML)
+./install.sh         # Create conda env (supertonic), install deps, deploy Obsidian plugin
+./start.sh           # Launch API server (auto-detects CUDA GPU)
+./start.sh --gpu     # Launch API server (force GPU)
 ```
 
 The install script automatically:
 1. Checks for required ONNX models in `assets/onnx/` (prompts download from HuggingFace if missing)
-2. Creates a Python virtual environment and installs dependencies
-3. Deploys the Obsidian plugin to `$OBSIDIAN_PLUGIN_DIR/supertonic-tts/`
+2. Creates a Conda environment named `supertonic` and installs all Python dependencies
+3. Runs `deploy-plugin.bat` to copy Obsidian plugin files to `%OBSIDIANPLUGINS%\supertonic-tts\`
 
 **Obsidian Setup**
 1. Enable "SuperTonic TTS" in Settings → Community Plugins
@@ -228,10 +252,11 @@ See `obsidian-plugin/` for plugin source and `py/api_server.py` for the API impl
 
 ### Technical Details
 
-- **Runtime**: ONNX Runtime for cross-platform inference (GPU acceleration via DirectML on Windows)
+- **Runtime**: ONNX Runtime for cross-platform inference (GPU acceleration via CUDA on Windows/Linux, DirectML on Windows)
 - **Browser Support**: onnxruntime-web for client-side inference
 - **Batch Processing**: Supports batch inference for improved throughput
 - **Audio Output**: Outputs 16-bit WAV files
+- **Environment**: Managed via Conda (`supertonic` environment, Python 3.10+ with `onnxruntime-gpu`)
 
 ## Performance
 

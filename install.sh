@@ -2,7 +2,7 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-VENV_DIR="$SCRIPT_DIR/venv"
+ENV_NAME="supertonic"
 
 echo "============================================"
 echo "  SuperTonic TTS — One-Click Installer"
@@ -10,12 +10,12 @@ echo "============================================"
 echo ""
 
 # --- Check ONNX models ---
-echo "[1/5] Checking ONNX models..."
+echo "[1/4] Checking ONNX models..."
 ONNX_DIR="$SCRIPT_DIR/assets/onnx"
 if [ ! -f "$ONNX_DIR/duration_predictor.onnx" ]; then
     echo ""
     echo "  WARNING: ONNX models not found!"
-    echo "  Download from: https://huggingface.co/SuperTone/supertonic"
+    echo "  Download from: https://huggingface.co/Supertone/supertonic-2"
     echo "  Place .onnx files in: $ONNX_DIR/"
     echo ""
     echo "  Required files:"
@@ -32,43 +32,39 @@ else
     echo "  Models found"
 fi
 
-# --- Check Python ---
-echo "[2/5] Checking Python..."
-if ! command -v python3 &>/dev/null && ! command -v python &>/dev/null; then
-    echo "ERROR: Python not found. Install Python 3.10+"
+# --- Check Conda ---
+echo "[2/4] Checking Conda..."
+if ! command -v conda &>/dev/null; then
+    echo "ERROR: Conda not found. Install Miniconda from https://docs.conda.io"
     exit 1
 fi
-PYTHON=$(command -v python3 || command -v python)
-echo "  Found $($PYTHON --version 2>&1)"
+echo "  Found $(conda --version 2>&1)"
 
-# --- Create venv ---
-echo "[3/5] Creating virtual environment..."
-if [ ! -d "$VENV_DIR" ]; then
-    $PYTHON -m venv "$VENV_DIR"
-    echo "  Virtual environment created"
-else
-    echo "  Virtual environment already exists"
-fi
+# --- Check / Create conda env ---
+echo "[3/4] Setting up conda environment..."
+if ! conda env list | grep -q "^${ENV_NAME} "; then
+    echo "  Creating conda environment '${ENV_NAME}'..."
+    conda create -n "$ENV_NAME" python=3.10 -y
+    echo "  Installing Python dependencies..."
+    conda run -n "$ENV_NAME" pip install -r "$SCRIPT_DIR/py/requirements.txt"
 
-# --- Install dependencies ---
-echo "[4/5] Installing Python dependencies..."
-source "$VENV_DIR/bin/activate"
-pip install -r "$SCRIPT_DIR/py/requirements.txt"
-
-# Install platform-appropriate ONNX Runtime if not already covered
-OS="$(uname -s)"
-if [ "$OS" = "Linux" ]; then
-    if command -v nvidia-smi &>/dev/null; then
-        pip install nvidia-cublas-cu12 nvidia-cudnn-cu12 nvidia-cuda-runtime-cu12 nvidia-cufft-cu12 nvidia-cusolver-cu12 nvidia-cusparse-cu12 nvidia-curand-cu12 nvidia-nvjitlink-cu12 2>/dev/null
-        echo "  NVIDIA CUDA 12 libraries installed"
+    # Install platform-appropriate CUDA libraries
+    OS="$(uname -s)"
+    if [ "$OS" = "Linux" ]; then
+        if command -v nvidia-smi &>/dev/null; then
+            conda run -n "$ENV_NAME" pip install nvidia-cublas-cu12 nvidia-cudnn-cu12 nvidia-cuda-runtime-cu12 nvidia-cufft-cu12 nvidia-cusolver-cu12 nvidia-cusparse-cu12 nvidia-curand-cu12 nvidia-nvjitlink-cu12 2>/dev/null
+            echo "  NVIDIA CUDA 12 libraries installed"
+        fi
     fi
+    echo "  Dependencies installed"
+else
+    echo "  Conda environment '${ENV_NAME}' already exists"
 fi
-echo "  Dependencies installed"
 
 # --- Install Obsidian plugin ---
-echo "[5/5] Setting up Obsidian plugin..."
+echo "[4/4] Setting up Obsidian plugin..."
 PLUGIN_SRC="$SCRIPT_DIR/obsidian-plugin"
-OBS_PLUGINS="${OBSIDIAN_PLUGIN_DIR:-}"
+OBS_PLUGINS="${OBSIDIANPLUGINS:-}"
 
 if [ -z "$OBS_PLUGINS" ]; then
     # Try common paths
@@ -90,7 +86,7 @@ if [ -n "$OBS_PLUGINS" ]; then
     cp "$PLUGIN_SRC/styles.css" "$TARGET_DIR/"
     echo "  Obsidian plugin installed to: $TARGET_DIR"
 else
-    echo "  Skipping plugin install (no OBSIDIAN_PLUGIN_DIR)"
+    echo "  Skipping plugin install (no OBSIDIANPLUGINS)"
     echo "  Manually copy obsidian-plugin/*.js, *.json, *.css to .obsidian/plugins/supertonic-tts/"
 fi
 
@@ -99,6 +95,8 @@ echo ""
 echo "============================================"
 echo "  Installation Complete!"
 echo "============================================"
+echo ""
+echo "  Environment:  conda activate $ENV_NAME"
 echo ""
 echo "  Usage:"
 echo "    ./start.sh         - Launch API server"

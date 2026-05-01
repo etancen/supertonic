@@ -3,15 +3,15 @@ setlocal enabledelayedexpansion
 title SuperTonic TTS API
 
 set SCRIPT_DIR=%~dp0
-set VENV_DIR=%SCRIPT_DIR%venv
+set ENV_NAME=supertonic
 
-if not exist "%VENV_DIR%\Scripts\activate.bat" (
-    echo Virtual environment not found. Run install.bat first.
+:: Check conda environment exists
+conda env list | findstr /C:"%ENV_NAME%" >nul
+if %ERRORLEVEL% neq 0 (
+    echo Conda environment '%ENV_NAME%' not found. Run install.bat first.
     pause
     exit /b 1
 )
-
-call "%VENV_DIR%\Scripts\activate.bat"
 
 :: Parse arguments
 set USE_GPU=
@@ -24,7 +24,7 @@ for %%a in (%*) do (
 
 :: Auto-detect GPU
 if "%USE_GPU%"=="" if "%NO_GPU%"=="0" (
-    python -c "import onnxruntime; p=onnxruntime.get_available_providers(); exit(0 if 'CUDAExecutionProvider' in p else 1)" 2>nul
+    conda run -n %ENV_NAME% python -c "import onnxruntime; p=onnxruntime.get_available_providers(); exit(0 if 'CUDAExecutionProvider' in p else 1)" 2>nul
     if !ERRORLEVEL! equ 0 set USE_GPU=--use-gpu
 )
 
@@ -40,6 +40,6 @@ echo.
 
 if not exist "%SCRIPT_DIR%logs" mkdir "%SCRIPT_DIR%logs"
 
-python "%SCRIPT_DIR%py\api_server.py" --onnx-dir "%SCRIPT_DIR%assets\onnx" --voice-dir "%SCRIPT_DIR%assets\voice_styles" --log-file "%SCRIPT_DIR%logs\server.log" %USE_GPU%
+conda run -n %ENV_NAME% python "%SCRIPT_DIR%py\api_server.py" --onnx-dir "%SCRIPT_DIR%assets\onnx" --voice-dir "%SCRIPT_DIR%assets\voice_styles" --log-file "%SCRIPT_DIR%logs\server.log" %USE_GPU%
 
 pause
