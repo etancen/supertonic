@@ -34,7 +34,7 @@ echo ============================================
 echo   SuperTonic TTS API Server
 echo ============================================
 echo   Assets: %SCRIPT_DIR%assets
-if "%USE_GPU%"=="--use-gpu" (echo   GPU:    auto-detected (CUDA)) else (echo   GPU:    no (CPU mode))
+if "%USE_GPU%"=="--use-gpu" (echo   GPU:    auto-detected ^(CUDA^)^) else (echo   GPU:    no ^(CPU mode^)^)
 echo   URL:    http://localhost:8765
 echo   Docs:   http://localhost:8765/docs
 echo   Log:    %SCRIPT_DIR%logs\server.log
